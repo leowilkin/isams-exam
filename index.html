@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>iSAMS Exam Schedule</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="/favicon.png">
+  <style>
+    :root {
+      --primary-color: #4361ee;
+      --text-color: #333;
+      --bg-color: #f8f9fa;
+      --card-bg: #ffffff;
+      --card-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      --completed-bg: #f3f4f6;
+      --days-left-color: #4361ee;
+      --border-color: #e0e0e0;
+      --footer-bg: #f0f2f5;
+    }
+
+    [data-theme="dark"] {
+      --primary-color: #738bff;
+      --text-color: #e0e0e0;
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --card-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      --completed-bg: #2a2a2a;
+      --days-left-color: #738bff;
+      --border-color: #3a3a3a;
+      --footer-bg: #1a1a1a;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg-color); 
+      color: var(--text-color);
+      line-height: 1.6;
+      padding: 0 0 1.5rem;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    h2 {
+      font-size: 1.4rem;
+      margin: 1.5rem 0 1rem;
+      font-weight: 500;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    textarea { 
+      width: 100%;
+      height: 120px;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font: inherit;
+      background: var(--card-bg);
+      color: var(--text-color);
+      resize: vertical;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    button {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    #examList, #completedExams {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    #completedExams {
+      display: none;
+    }
+
+    .exam-card {
+      background: var(--card-bg);
+      padding: 1.25rem;
+      border-radius: 12px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .exam-card.completed {
+      opacity: 0.7;
+      background: var(--completed-bg);
+    }
+
+    .exam-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .exam-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .exam-subject {
+      color: var(--primary-color);
+      font-weight: 500;
+    }
+
+    .exam-details {
+      margin-top: 0.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.5rem;
+    }
+
+    .exam-detail {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-label {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .days-left {
+      font-weight: 600;
+      color: var(--days-left-color);
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      display: inline-block;
+      margin-top: 0.5rem;
+      background: rgba(67, 97, 238, 0.1);
+    }
+
+    [data-theme="dark"] .days-left {
+      background: rgba(115, 139, 255, 0.2);
+    }
+
+    footer {
+      margin-top: 2rem;
+      text-align: center;
+      padding: 1.25rem;
+      background: var(--footer-bg);
+      font-size: 0.9rem;
+    }
+
+    .theme-toggle-container {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 100;
+    }
+
+    .theme-toggle {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .theme-toggle svg {
+      width: 24px;
+      height: 24px;
+      fill: white;
+    }
+
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal.visible {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 90%;
+      width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      font-size: 1.5rem;
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: var(--text-color);
+      padding: 0.25rem 0.5rem;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .button-group button {
+        width: 100%;
+      }
+      
+      .exam-details {
+        grid-template-columns: 1fr;
+      }
+      
+      .exam-header {
+        flex-direction: column;
+      }
+      
+      h1 {
+        font-size: 1.5rem;
+      }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 2rem;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>iSAMS Exam Timetable Viewer</h1>
+    <textarea id="input" placeholder="Paste your raw exam schedule..."></textarea>
+    
+    <div class="button-group">
+      <button onclick="convert()">Process Schedule</button>
+      <button id="downloadBtn" onclick="downloadICS()" style="display: none;">Download Calendar</button>
+      <button id="toggleBtn" onclick="toggleCompleted()" style="display: none;">Show Completed Exams</button>
+      <button id="instructionsBtn" onclick="showInstructions()">Instructions</button>
+      <button id="clearBtn" onclick="clearData()">Clear Data</button>
+    </div>
+    
+    <div id="examList">
+      <div class="empty-state">No exams to display. Paste your schedule and click "Process Schedule".</div>
+    </div>
+    <div id="completedExams"></div>
+  </div>
+  
+  <!-- Instructions Modal -->
+  <div id="instructionsModal" class="modal">
+    <div class="modal-content">
+        <button class="close-modal" onclick="closeModal('instructionsModal')">&times;</button>
+        <h2>How to use this tool</h2>
+        <iframe width="100%" height="auto-fit" src="setup.mp4" frameborder="0" allow="autoplay"></iframe>
+        <br><br>
+        <a href="https://wellington.students.isamshosting.cloud/api/profile/publicexams/timetables/" target="_blank">
+            <button>iSAMS Data</button>
+        </a>
+      
+    </div>
+  </div>
+
+  <!-- Download Success Modal -->
+  <div id="downloadModal" class="modal">
+    <div class="modal-content">
+      <button class="close-modal" onclick="closeModal('downloadModal')">&times;</button>
+      <h2>Download Complete</h2>
+      <p>Your exam schedule has been downloaded as an ICS file. You can import this file into any calendar application.</p>
+      <br>
+      <iframe width="100%" height="auto-fit" src="calendar.mp4" frameborder="0" allow="autoplay"></iframe>
+    </div>
+  </div>
+
+  <!-- Support Modal -->
+  <div id="supportModal" class="modal">
+    <div class="modal-content">
+      <button class="close-modal" onclick="closeModal('downloadModal')">&times;</button>
+      <h2>Download Complete</h2>
+      <p>Your exam schedule has been downloaded as an ICS file. You can import this file into any calendar application.</p>
+      <br>
+      <iframe width="100%" height="auto-fit" src="calendar.mp4" frameborder="0" allow="autoplay"></iframe>
+    </div>
+  </div>
+  
+  <div class="theme-toggle-container">
+    <div class="theme-toggle" onclick="toggleTheme()">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" id="theme-icon">
+        <path d="M12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18ZM11 1H13V4H11V1ZM11 20H13V23H11V20ZM3.51472 4.92893L4.92893 3.51472L7.05025 5.63604L5.63604 7.05025L3.51472 4.92893ZM16.9497 18.364L18.364 16.9497L20.4853 19.0711L19.0711 20.4853L16.9497 18.364ZM19.0711 3.51472L20.4853 4.92893L18.364 7.05025L16.9497 5.63604L19.0711 3.51472ZM5.63604 16.9497L7.05025 18.364L4.92893 20.4853L3.51472 19.0711L5.63604 16.9497ZM23 11V13H20V11H23ZM4 11V13H1V11H4Z"/>
+      </svg>
+    </div>
+  </div>
+  
+  <footer>
+    &copy; <a href="https://wilkin.xyz">Leo Wilkin</a> 2025
+  </footer>
+
+  <script>
+    let currentExams = [];
+    let isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    function convertDurationToMinutes(duration) {
+      const hours = /(\d+)\s*hrs?/.exec(duration);
+      const mins = /(\d+)(?:\s*mins?)?(?!\s*hrs?)/.exec(duration); 
+      return (hours ? parseInt(hours[1]) * 60 : 0) + (mins ? parseInt(mins[1]) : 0);
+    }
+
+    function formatDateToCode(dateStr) {
+      const months = { April: '04', May:'05', June:'06' };
+      const [day, month, year] = dateStr.split(' ');
+      return `${year}-${months[month]}-${day.padStart(2, '0')}`;
+    }
+
+    function toDateTime(dateStr, timeStr) {
+      return new Date(`${dateStr}T${timeStr}`);
+    }
+
+    function showModal(id) {
+      document.getElementById(id).classList.add('visible');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('visible');
+      document.body.style.overflow = '';
+    }
+
+    function showInstructions() {
+      showModal('instructionsModal');
+    }
+
+    function convert() {
+      const rawText = document.getElementById('input').value;
+      if (!rawText.trim()) {
+        alert("Please paste your exam schedule first!");
+        return;
+      }
+      
+      const lines = rawText.trim().split('\n');
+      // Make sure we have at least one data line after header
+      if (lines.length < 2) {
+        alert("Invalid format! Please paste a valid exam schedule.");
+        return;
+      }
+      
+      const exams = lines.slice(1)
+        .map(line => {
+          const parts = line.split('\t').map(p => p.trim());
+          if (parts.length < 7 || parts[5] === 'TBA') return null; // Ignore lines with insufficient data or 'TBA' date
+          const [, , descSubj, location, , date, time, ...durationParts] = parts;
+          const durationStr = durationParts.join(' ');
+          const match = descSubj.match(/^(.*) - \[(.*)\]$/);
+          const description = match ? match[1] : descSubj;
+          const subject = match ? match[2] : null;
+
+          return {
+            description,
+            subject,
+            location,
+            dateCode: formatDateToCode(date),
+            time,
+            durationMinutes: convertDurationToMinutes(durationStr)
+          };
+        })
+        .filter(exam => exam !== null); // Remove null entries
+
+      if (exams.length === 0) {
+        alert("No valid exams found in the data. Please check the format.");
+        return;
+      }
+
+      currentExams = exams;
+      document.cookie = "examData=" + encodeURIComponent(JSON.stringify(currentExams)) + ";path=/;max-age=31536000";
+      
+      // Show download and toggle buttons now that data is processed
+      document.getElementById('downloadBtn').style.display = 'block';
+      // document.getElementById('toggleBtn').style.display = 'block';
+      document.getElementById('instructionsBtn').style.display = 'block';
+      
+      
+      renderExams();
+    }
+
+    function renderExams() {
+      const now = new Date();
+      const listEl = document.getElementById('examList');
+      const completedEl = document.getElementById('completedExams');
+      listEl.innerHTML = '';
+      completedEl.innerHTML = '';
+      
+      if (currentExams.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">No exams to display. Paste your schedule and click "Process Schedule".</div>';
+        return;
+      }
+
+      const upcomingExams = [];
+      const pastExams = [];
+
+      currentExams.forEach(exam => {
+        const startDate = toDateTime(exam.dateCode, exam.time);
+        const diffDays = Math.floor((startDate - now) / (1000 * 60 * 60 * 24));
+        const isPast = startDate < now;
+
+        const endTime = new Date(startDate.getTime() + exam.durationMinutes * 60000);
+        const formattedDate = new Date(exam.dateCode).toLocaleDateString('en-GB', { 
+          weekday: 'short', 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        });
+        
+        const card = document.createElement('div');
+        card.className = 'exam-card' + (isPast ? ' completed' : '');
+        card.innerHTML = `
+          <div class="exam-header">
+            <div>
+              <div class="exam-title">${exam.description}</div>
+              <div class="exam-subject">${exam.subject || ''}</div>
+            </div>
+            ${!isPast ? `<span class="days-left">${diffDays} day${diffDays !== 1 ? 's' : ''} left</span>` : ''}
+          </div>
+          <div class="exam-details">
+            <div class="exam-detail">
+              <span class="detail-label">Date</span>
+              <span>${formattedDate}</span>
+            </div>
+            <div class="exam-detail">
+              <span class="detail-label">Time</span>
+              <span>${exam.time} - ${endTime.toTimeString().slice(0, 5)}</span>
+            </div>
+            <div class="exam-detail">
+              <span class="detail-label">Location</span>
+              <span>${exam.location}</span>
+            </div>
+            <div class="exam-detail">
+              <span class="detail-label">Duration</span>
+              <span>${exam.durationMinutes} minutes</span>
+            </div>
+          </div>
+        `;
+
+        if (isPast) pastExams.push(card);
+        else upcomingExams.push(card);
+      });
+
+      if (upcomingExams.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">No upcoming exams to display.</div>';
+      } else {
+        upcomingExams.forEach(card => listEl.appendChild(card));
+      }
+
+      if (pastExams.length === 0) {
+        completedEl.innerHTML = '<div class="empty-state">No completed exams to display.</div>';
+      } else {
+        pastExams.forEach(card => completedEl.appendChild(card));
+      }
+      
+      /* document.getElementById('toggleBtn').textContent = pastExams.length > 0 ? `Show Completed Exams (${pastExams.length})` : 'No Completed Exams'; */
+    }
+
+    function toggleCompleted() {
+      const el = document.getElementById('completedExams');
+      const isHidden = el.style.display === 'none' || !el.style.display;
+      el.style.display = isHidden ? 'flex' : 'none';
+      document.getElementById('toggleBtn').textContent = isHidden ? 'Hide Completed Exams' : `Show Completed Exams (${document.querySelectorAll('#completedExams .exam-card').length})`;
+    }
+
+    function toICSTime(dateStr, timeStr) {
+      const [year, month, day] = dateStr.split('-');
+      const [hour, minute] = timeStr.split(':');
+      return `${year}${month}${day}T${hour}${minute}00`;
+    }
+
+    function downloadICS() {
+      if (currentExams.length === 0) {
+        alert("Please process your exam schedule first!");
+        return;
+      }
+
+      let ics = `BEGIN:VCALENDAR\nVERSION:2.0\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\nPRODID:-//iSAMS Exam Timetable//EN\n`;
+      currentExams.forEach((exam, i) => {
+        const start = toDateTime(exam.dateCode, exam.time);
+        const end = new Date(start.getTime() + exam.durationMinutes * 60000);
+        ics += `BEGIN:VEVENT\n`;
+        ics += `UID:exam-${i}@exams\n`;
+        ics += `DTSTAMP:${toICSTime(new Date().toISOString().slice(0, 10), new Date().toTimeString().slice(0, 5))}\n`;
+        ics += `DTSTART:${toICSTime(exam.dateCode, exam.time)}\n`;
+        ics += `DTEND:${toICSTime(end.toISOString().slice(0, 10), end.toTimeString().slice(0, 5))}\n`;
+        ics += `SUMMARY:${exam.subject ? exam.subject + ': ' : ''}${exam.description}\n`;
+        ics += `LOCATION:${exam.location}\n`;
+        ics += `DESCRIPTION:${exam.description}${exam.subject ? ' - ' + exam.subject : ''}\n`;
+        ics += `END:VEVENT\n`;
+      });
+      ics += `END:VCALENDAR`;
+
+      const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'exam_schedule.ics';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // Show the download success modal
+      showModal('downloadModal');
+    }
+
+    function toggleTheme() {
+      isDarkMode = !isDarkMode;
+      document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+      
+      const moonPath = "M21.5287 15.9294C21.3687 15.6594 20.9187 15.2394 19.7987 15.4394C19.1787 15.5494 18.5487 15.5994 17.9187 15.5694C15.5887 15.4694 13.4787 14.3994 12.0087 12.7494C10.7087 11.2994 9.90873 9.40938 9.89873 7.38938C9.89873 6.00938 10.2087 4.66938 10.8387 3.46938C11.1787 2.82938 11.3387 2.16938 11.1387 1.77938C10.9387 1.39938 10.3587 1.22938 9.76873 1.38938C6.28873 2.68938 3.70873 6.26938 3.70873 10.3494C3.70873 15.4694 7.84873 19.6094 12.9687 19.6094C16.2487 19.6094 19.1387 17.8294 20.8787 15.1894C21.2187 14.6594 21.6987 14.1994 21.5287 15.9294Z";
+      const sunPath = "M12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18ZM11 1H13V4H11V1ZM11 20H13V23H11V20ZM3.51472 4.92893L4.92893 3.51472L7.05025 5.63604L5.63604 7.05025L3.51472 4.92893ZM16.9497 18.364L18.364 16.9497L20.4853 19.0711L19.0711 20.4853L16.9497 18.364ZM19.0711 3.51472L20.4853 4.92893L18.364 7.05025L16.9497 5.63604L19.0711 3.51472ZM5.63604 16.9497L7.05025 18.364L4.92893 20.4853L3.51472 19.0711L5.63604 16.9497ZM23 11V13H20V11H23ZM4 11V13H1V11H4Z";
+      
+      document.getElementById('theme-icon').innerHTML = `<path d="${isDarkMode ? sunPath : moonPath}"/>`;
+      
+      localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    }
+
+    function clearData() {
+      if (confirm("Are you sure you want to clear all exam data?")) {
+        // Clear cookie
+        document.cookie = "examData=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        
+        // Reset the app state
+        currentExams = [];
+        document.getElementById('input').value = '';
+        document.getElementById('downloadBtn').style.display = 'none';
+        document.getElementById('toggleBtn').style.display = 'none';
+        
+        // Reset the exam lists
+        document.getElementById('examList').innerHTML = '<div class="empty-state">No exams to display. Paste your schedule and click "Process Schedule".</div>';
+        document.getElementById('completedExams').innerHTML = '';
+        document.getElementById('completedExams').style.display = 'none';
+      }
+    }
+
+    // Load saved exams from cookie
+    window.onload = () => {
+      // Check for saved theme
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        isDarkMode = savedTheme === 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        
+        const moonPath = "M21.5287 15.9294C21.3687 15.6594 20.9187 15.2394 19.7987 15.4394C19.1787 15.5494 18.5487 15.5994 17.9187 15.5694C15.5887 15.4694 13.4787 14.3994 12.0087 12.7494C10.7087 11.2994 9.90873 9.40938 9.89873 7.38938C9.89873 6.00938 10.2087 4.66938 10.8387 3.46938C11.1787 2.82938 11.3387 2.16938 11.1387 1.77938C10.9387 1.39938 10.3587 1.22938 9.76873 1.38938C6.28873 2.68938 3.70873 6.26938 3.70873 10.3494C3.70873 15.4694 7.84873 19.6094 12.9687 19.6094C16.2487 19.6094 19.1387 17.8294 20.8787 15.1894C21.2187 14.6594 21.6987 14.1994 21.5287 15.9294Z";
+        const sunPath = "M12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18ZM11 1H13V4H11V1ZM11 20H13V23H11V20ZM3.51472 4.92893L4.92893 3.51472L7.05025 5.63604L5.63604 7.05025L3.51472 4.92893ZM16.9497 18.364L18.364 16.9497L20.4853 19.0711L19.0711 20.4853L16.9497 18.364ZM19.0711 3.51472L20.4853 4.92893L18.364 7.05025L16.9497 5.63604L19.0711 3.51472ZM5.63604 16.9497L7.05025 18.364L4.92893 20.4853L3.51472 19.0711L5.63604 16.9497ZM23 11V13H20V11H23ZM4 11V13H1V11H4Z";
+        
+        document.getElementById('theme-icon').innerHTML = `<path d="${isDarkMode ? sunPath : moonPath}"/>`;
+      } else {
+        // Set theme based on system preference
+        isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+        
+        const moonPath = "M21.5287 15.9294C21.3687 15.6594 20.9187 15.2394 19.7987 15.4394C19.1787 15.5494 18.5487 15.5994 17.9187 15.5694C15.5887 15.4694 13.4787 14.3994 12.0087 12.7494C10.7087 11.2994 9.90873 9.40938 9.89873 7.38938C9.89873 6.00938 10.2087 4.66938 10.8387 3.46938C11.1787 2.82938 11.3387 2.16938 11.1387 1.77938C10.9387 1.39938 10.3587 1.22938 9.76873 1.38938C6.28873 2.68938 3.70873 6.26938 3.70873 10.3494C3.70873 15.4694 7.84873 19.6094 12.9687 19.6094C16.2487 19.6094 19.1387 17.8294 20.8787 15.1894C21.2187 14.6594 21.6987 14.1994 21.5287 15.9294Z";
+        const sunPath = "M12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18ZM11 1H13V4H11V1ZM11 20H13V23H11V20ZM3.51472 4.92893L4.92893 3.51472L7.05025 5.63604L5.63604 7.05025L3.51472 4.92893ZM16.9497 18.364L18.364 16.9497L20.4853 19.0711L19.0711 20.4853L16.9497 18.364ZM19.0711 3.51472L20.4853 4.92893L18.364 7.05025L16.9497 5.63604L19.0711 3.51472ZM5.63604 16.9497L7.05025 18.364L4.92893 20.4853L3.51472 19.0711L5.63604 16.9497ZM23 11V13H20V11H23ZM4 11V13H1V11H4Z";
+        
+        document.getElementById('theme-icon').innerHTML = `<path d="${isDarkMode ? sunPath : moonPath}"/>`;
+      }
+      
+      // Check for saved exam data
+      const examCookie = document.cookie.split(';').find(c => c.trim().startsWith('examData='));
+      if (examCookie) {
+        try {
+          const examData = JSON.parse(decodeURIComponent(examCookie.split('=')[1]));
+          if (Array.isArray(examData) && examData.length > 0) {
+            currentExams = examData;
+            // Show download and toggle buttons
+            document.getElementById('downloadBtn').style.display = 'block';
+            document.getElementById('toggleBtn').style.display = 'block';
+            renderExams();
+          }
+        } catch(e) {
+          console.error('Error parsing exam data from cookie:', e);
+        }
+      }
+    };
+  </script>
+</body>
+</html>
