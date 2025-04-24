@@ -393,6 +393,12 @@
           const description = match ? match[1] : descSubj;
           const subject = match ? match[2] : null;
 
+          try {
+            cabin.event('Exam Logged');
+          } catch (e) {
+            console.error('Error tracking exam:', e);
+          }
+
           return {
             description,
             subject,
