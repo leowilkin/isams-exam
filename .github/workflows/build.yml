@@ -30,7 +30,7 @@ jobs:
           files: |
             dist/iSAMS Exam Viewer-Setup-*.exe
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
   build-macos:
     runs-on: macos-latest
@@ -56,4 +56,4 @@ jobs:
           files: |
             dist/iSAMS Exam Viewer-*.dmg
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
