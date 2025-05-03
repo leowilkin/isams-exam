@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>iSAMS Exam Schedule</title>
+  <title>iSAMS Exam Schedule Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="/favicon.png">
+  <link rel="icon" href="assets/favicon.png" type="image/png">
   <style>
     :root {
       --primary-color: #4361ee;
@@ -30,6 +30,25 @@
       --footer-bg: #1a1a1a;
     }
 
+    /* Hide scrollbars but keep scroll functionality */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    
+    html {
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE and Edge */
+    }
+    
+    .modal-content {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    
+    .modal-content::-webkit-scrollbar {
+      display: none;
+    }
+    
     * {
       margin: 0;
       padding: 0;
@@ -282,18 +301,22 @@
 <body>
   <div class="container">
     <h1>iSAMS Exam Timetable Viewer</h1>
-    <textarea id="input" placeholder="Paste your raw exam schedule..."></textarea>
+    <div id="inputSection">
+      <textarea id="input" placeholder="Paste your raw exam schedule..."></textarea>
+      
+      <div class="button-group" id="initialButtons">
+        <button data-cabin-event="Process Schedule" onclick="convert()">Process Schedule</button>
+        <button data-cabin-event="Instructions" id="instructionsBtn" onclick="showInstructions()">Instructions</button>
+      </div>
+    </div>
     
-    <div class="button-group">
-      <button data-cabin-event="Process Schedule" onclick="convert()">Process Schedule</button>
-      <button data-cabin-event="Download Calendar" id="downloadBtn" onclick="downloadICS()" style="display: none;">Download Calendar</button>
-      <button id="toggleBtn" onclick="toggleCompleted()" style="display: none;">Show Completed Exams</button>
-      <button data-cabin-event="Instructions" id="instructionsBtn" onclick="showInstructions()">Instructions</button>
-      <button data-cabin-event="Clear Data" id="clearBtn" onclick="clearData()">Clear Data</button>
+    <div class="button-group" id="dataButtons" style="display: none;">
+      <button data-cabin-event="Download Calendar" id="downloadBtn" onclick="downloadICS()">Download Calendar</button>
+      <!--<button data-cabin-event="Clear Data" id="clearBtn" onclick="clearData()">Clear Data</button>-->
     </div>
     
     <div id="examList">
-      <div class="empty-state">No exams to display. Paste your schedule and click "Process Schedule".</div>
+      <div class="empty-state">No exams to display. Read the Instructions and input your data into the program.</div> 
     </div>
     <div id="completedExams"></div>
   </div>
@@ -303,27 +326,33 @@
     <div class="modal-content">
         <button class="close-modal" onclick="closeModal('instructionsModal')">&times;</button>
         <h2>How to use this tool</h2>
-        <iframe width="100%" height="auto-fit" src="https://cdn.exam-timetable.wilkin.xyz/setup.mp4" frameborder="0" allow="autoplay" allowfullscreen></iframe>
+        <iframe width="100%" height="315" src="assets/setup.mp4" frameborder="0" allow="autoplay" allowfullscreen></iframe>
         <br><br>
         <a data-cabin-event="iSAMS Data" href="https://wellington.students.isamshosting.cloud/api/profile/publicexams/timetables/" target="_blank">
-            <button>iSAMS Data</button>
+        <ul>
+          <li>Go to the iSAMS button below, and if needed, authenticate to access your exams list.</li>
+          <li>Copy all the data on the page that contains your exam data.</li>
+          <li>Return back to this application, and paste it in the box when you exit this tab.</li>
+          <li>Click Process Schedule, and your exams will appear ✨</li>
+        </ul>
+            <button>Get your iSAMS Data</button>
         </a>
       
     </div>
   </div>
 
-  <!-- Download Success Modal -->
   <div id="downloadModal" class="modal">
     <div class="modal-content">
       <button class="close-modal" onclick="closeModal('downloadModal')">&times;</button>
       <h2>Download Complete</h2>
       <p>Your exam schedule has been downloaded as an ICS file. You can import this file into any calendar application.</p>
       <br>
-      <iframe width="100%" height="auto-fit" src="https://cdn.exam-timetable.wilkin.xyz/calendar.mp4" frameborder="0" allow="autoplay" allowfullscreen></iframe>
+      <iframe width="100%" height="auto-fit" src="assets/calendar.mp4" frameborder="0" allow="autoplay" allowfullscreen></iframe>
     </div>
   </div>
   
-  <div class="theme-toggle-container">
+  <!-- the theme is in the context menu so this is hidden :P  -->
+  <div class="theme-toggle-container" style="display: none;">
     <div class="theme-toggle" onclick="toggleTheme()">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" id="theme-icon">
         <path d="M12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18ZM11 1H13V4H11V1ZM11 20H13V23H11V20ZM3.51472 4.92893L4.92893 3.51472L7.05025 5.63604L5.63604 7.05025L3.51472 4.92893ZM16.9497 18.364L18.364 16.9497L20.4853 19.0711L19.0711 20.4853L16.9497 18.364ZM19.0711 3.51472L20.4853 4.92893L18.364 7.05025L16.9497 5.63604L19.0711 3.51472ZM5.63604 16.9497L7.05025 18.364L4.92893 20.4853L3.51472 19.0711L5.63604 16.9497ZM23 11V13H20V11H23ZM4 11V13H1V11H4Z"/>
@@ -377,7 +406,6 @@
       }
       
       const lines = rawText.trim().split('\n');
-      // Make sure we have at least one data line after header
       if (lines.length < 2) {
         alert("Invalid format! Please paste a valid exam schedule.");
         return;
@@ -386,7 +414,7 @@
       const exams = lines.slice(1)
         .map(line => {
           const parts = line.split('\t').map(p => p.trim());
-          if (parts.length < 7 || parts[5] === 'TBA') return null; // Ignore lines with insufficient data or 'TBA' date
+          if (parts.length < 7 || parts[5] === 'TBA') return null;
           const [, , descSubj, location, , date, time, ...durationParts] = parts;
           const durationStr = durationParts.join(' ');
           const match = descSubj.match(/^(.*) - \[(.*)\]$/);
@@ -408,7 +436,7 @@
             durationMinutes: convertDurationToMinutes(durationStr)
           };
         })
-        .filter(exam => exam !== null); // Remove null entries
+        .filter(exam => exam !== null);
 
       if (exams.length === 0) {
         alert("No valid exams found in the data. Please check the format.");
@@ -418,13 +446,15 @@
       currentExams = exams;
       document.cookie = "examData=" + encodeURIComponent(JSON.stringify(currentExams)) + ";path=/;max-age=31536000";
       
-      // Show download and toggle buttons now that data is processed
-      document.getElementById('downloadBtn').style.display = 'block';
-      // document.getElementById('toggleBtn').style.display = 'block';
-      document.getElementById('instructionsBtn').style.display = 'block';
-      
+      document.getElementById('inputSection').style.display = 'none';
+      document.getElementById('dataButtons').style.display = 'flex';
       
       renderExams();
+      
+      const completedCount = document.querySelectorAll('#completedExams .exam-card').length;
+      if (completedCount > 0) {
+        document.getElementById('toggleBtn').textContent = `Show Completed Exams (${completedCount})`;
+      }
     }
 
     function renderExams() {
@@ -548,7 +578,6 @@
       a.click();
       document.body.removeChild(a);
       
-      // Show the download success modal
       showModal('downloadModal');
     }
 
@@ -566,25 +595,21 @@
 
     function clearData() {
       if (confirm("Are you sure you want to clear all exam data?")) {
-        // Clear cookie
         document.cookie = "examData=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
         
-        // Reset the app state
         currentExams = [];
         document.getElementById('input').value = '';
-        document.getElementById('downloadBtn').style.display = 'none';
-        document.getElementById('toggleBtn').style.display = 'none';
         
-        // Reset the exam lists
+        document.getElementById('dataButtons').style.display = 'none';
+        document.getElementById('inputSection').style.display = 'block';
+        
         document.getElementById('examList').innerHTML = '<div class="empty-state">No exams to display. Paste your schedule and click "Process Schedule".</div>';
         document.getElementById('completedExams').innerHTML = '';
         document.getElementById('completedExams').style.display = 'none';
       }
     }
 
-    // Load saved exams from cookie
     window.onload = () => {
-      // Check for saved theme
       const savedTheme = localStorage.getItem('theme');
       if (savedTheme) {
         isDarkMode = savedTheme === 'dark';
@@ -605,16 +630,17 @@
         document.getElementById('theme-icon').innerHTML = `<path d="${isDarkMode ? sunPath : moonPath}"/>`;
       }
       
-      // Check for saved exam data
       const examCookie = document.cookie.split(';').find(c => c.trim().startsWith('examData='));
       if (examCookie) {
         try {
           const examData = JSON.parse(decodeURIComponent(examCookie.split('=')[1]));
           if (Array.isArray(examData) && examData.length > 0) {
             currentExams = examData;
-            // Show download and toggle buttons
-            document.getElementById('downloadBtn').style.display = 'block';
-            document.getElementById('toggleBtn').style.display = 'block';
+            
+            document.getElementById('inputSection').style.display = 'none';
+            
+            document.getElementById('dataButtons').style.display = 'flex';
+            
             renderExams();
           }
         } catch(e) {
