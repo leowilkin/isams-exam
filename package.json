@@ -5,10 +5,9 @@
   "main": "main.js",
   "scripts": {
     "start": "npx electron .",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac",
-    "build:all": "electron-builder -mw",
+    "build": "electron-builder --publish never",
+    "build:win": "electron-builder --win --publish never",
+    "build:all": "electron-builder -mw --publish never",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -85,13 +84,11 @@
       "!**/{appveyor.yml,.travis.yml,circle.yml}",
       "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
     ],
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "leowilkin",
-        "repo": "isams-exam"
-      }
-    ]
+    "publish": {
+      "provider": "github",
+      "owner": "leowilkin",
+      "repo": "isams-exam"
+    }
   },
   "devDependencies": {
     "electron": "^36.1.0",
