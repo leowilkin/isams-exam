@@ -1,4 +1,6 @@
-# isams exam parser
+# iSAMS Exam Schedule Dashboard
+
+[![Build and Release](https://github.com/leowilkin/isams-exam/actions/workflows/build.yml/badge.svg)](https://github.com/leowilkin/isams-exam/actions/workflows/build.yml)
 
 ## what is this?
 
