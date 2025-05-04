@@ -7,8 +7,12 @@
     "start": "npx electron .",
     "build": "electron-builder --publish never",
     "build:win": "electron-builder --win --publish never",
+    "build:mac": "electron-builder --mac --publish never",
+    "build:linux": "electron-builder --linux --publish never",
+    "build:linux:local": "electron-builder --linux AppImage --publish never",
     "build:msi": "electron-builder --win msi --publish never",
-    "build:all": "electron-builder -mw --publish never",
+    "build:all": "electron-builder -mwl --publish never",
+    "build:win-only": "electron-builder -w --publish never",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -64,6 +68,15 @@
           ]
         }
       ],
+      "icon": "assets/favicon.png",
+      "artifactName": "${productName}-${version}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
       "icon": "assets/favicon.png",
       "artifactName": "${productName}-${version}.${ext}"
     },
