@@ -1,9 +1,69 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } = require('electron');
-const path = require('path');
+import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } from 'electron';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import Store from 'electron-store';
+
+// Get __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Initialize the store
+const store = new Store();
 
 // Keep a global reference to prevent garbage collection
 let tray = null;
 let mainWindow = null;
+
+// Ensure single instance application
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  console.log('Another instance is already running. Quitting this instance.');
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+
+  // Set up IPC handlers for data persistence
+  ipcMain.handle('save-exams', (event, examData) => {
+    store.set('examData', examData);
+    return true;
+  });
+
+  ipcMain.handle('load-exams', () => {
+    return store.get('examData', []);
+  });
+
+  ipcMain.handle('delete-exams', () => {
+    store.delete('examData');
+    return true;
+  });
+
+  ipcMain.handle('save-theme', (event, theme) => {
+    store.set('theme', theme);
+    return true;
+  });
+
+  ipcMain.handle('load-theme', () => {
+    return store.get('theme', null);
+  });
+
+  // Continue with your app initialization
+  app.whenReady().then(() => {
+    createWindow();
+    createTray();
+      
+    app.on('activate', function () {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  });
+}
 
 function createWindow() {
   // Create the browser window
@@ -11,11 +71,13 @@ function createWindow() {
     width: 800,
     height: 700,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      preload: path.join(__dirname, 'preload.js')
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
+      // Settings for ESM compatibility
+      sandbox: false
     },
-    icon: path.join(__dirname, 'favicon.png'),
+    icon: path.join(__dirname, 'assets', 'favicon.png'),
     show: true,
     frame: true,
   });
@@ -103,7 +165,7 @@ function createApplicationMenu() {
 }
 
 function createTray() {
-  const icon = nativeImage.createFromPath(path.join(__dirname, 'favicon.png'));
+  const icon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'favicon.png'));
   tray = new Tray(icon);
   tray.setToolTip('iSAMS Exam Schedule');
   
@@ -134,15 +196,6 @@ function createTray() {
     }
   });
 }
-
-app.whenReady().then(() => {
-  createWindow();
-  createTray();
-    
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
 
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit();

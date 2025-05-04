@@ -1,12 +1,13 @@
 {
-  "name": "isams-exam",
-  "version": "1.0.0",
+  "name": "isams-exam-viewer",
+  "version": "0.2.0-beta",
   "description": "iSAMS Exam Schedule Viewer",
   "main": "main.js",
   "scripts": {
     "start": "npx electron .",
     "build": "electron-builder --publish never",
     "build:win": "electron-builder --win --publish never",
+    "build:msi": "electron-builder --win msi --publish never",
     "build:all": "electron-builder -mw --publish never",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,16 +16,24 @@
     "url": "git+https://github.com/leowilkin/isams-exam.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Leo Wilkin",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "browser": {
+    "fs": false,
+    "path": false
+  },
   "bugs": {
     "url": "https://github.com/leowilkin/isams-exam/issues"
   },
   "homepage": "https://github.com/leowilkin/isams-exam#readme",
   "build": {
-    "appId": "xyz.wilkin.isams-exam",
+    "appId": "xyz.wilkin.isams-exam-viewer",
     "productName": "iSAMS Exam Viewer",
+    "asarUnpack": ["**/*.node"],
     "win": {
       "target": [
         {
@@ -32,10 +41,18 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "msi",
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "assets/favicon.png",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "executableName": "isams-exam-viewer",
+      "requestedExecutionLevel": "asInvoker"
     },
     "mac": {
       "target": [
@@ -54,7 +71,16 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "runAfterFinish": true
+      "runAfterFinish": true,
+      "shortcutName": "iSAMS Exam Viewer",
+      "menuCategory": "iSAMS Tools"
+    },
+    "msi": {
+      "oneClick": false,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "shortcutName": "iSAMS Exam Viewer",
+      "menuCategory": "iSAMS Tools"
     },
     "dmg": {
       "contents": [
@@ -93,5 +119,20 @@
   "devDependencies": {
     "electron": "^36.1.0",
     "electron-builder": "^26.0.12"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0"
+  },
+  "electronConfig": {
+    "nodeIntegration": true,
+    "contextIsolation": true,
+    "enableRemoteModule": false,
+    "nodeIntegrationInWorker": false,
+    "nodeIntegrationInSubFrames": false,
+    "sandbox": false,
+    "webSecurity": true,
+    "additionalArgs": [
+      "--no-experimental-fetch"
+    ]
   }
 }

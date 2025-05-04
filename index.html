@@ -444,7 +444,11 @@
       }
 
       currentExams = exams;
-      document.cookie = "examData=" + encodeURIComponent(JSON.stringify(currentExams)) + ";path=/;max-age=31536000";
+      
+      // Save exams using Electron API instead of cookies
+      if (window.electronAPI) {
+        window.electronAPI.saveExams(currentExams);
+      }
       
       document.getElementById('inputSection').style.display = 'none';
       document.getElementById('dataButtons').style.display = 'flex';
@@ -590,12 +594,22 @@
       
       document.getElementById('theme-icon').innerHTML = `<path d="${isDarkMode ? sunPath : moonPath}"/>`;
       
-      localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+      // Save theme preference using Electron API instead of localStorage
+      if (window.electronAPI) {
+        window.electronAPI.saveTheme(isDarkMode ? 'dark' : 'light');
+      } else {
+        localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+      }
     }
 
     function clearData() {
       if (confirm("Are you sure you want to clear all exam data?")) {
-        document.cookie = "examData=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        // Delete data from Electron storage
+        if (window.electronAPI) {
+          window.electronAPI.deleteExams();
+        } else {
+          document.cookie = "examData=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        }
         
         currentExams = [];
         document.getElementById('input').value = '';
@@ -609,8 +623,19 @@
       }
     }
 
-    window.onload = () => {
-      const savedTheme = localStorage.getItem('theme');
+    window.onload = async () => {
+      // Check if we're running in Electron
+      const isElectron = window.electronAPI !== undefined;
+      
+      // Load theme preference
+      let savedTheme;
+      
+      if (isElectron) {
+        savedTheme = await window.electronAPI.loadTheme();
+      } else {
+        savedTheme = localStorage.getItem('theme');
+      }
+      
       if (savedTheme) {
         isDarkMode = savedTheme === 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
@@ -630,22 +655,29 @@
         document.getElementById('theme-icon').innerHTML = `<path d="${isDarkMode ? sunPath : moonPath}"/>`;
       }
       
-      const examCookie = document.cookie.split(';').find(c => c.trim().startsWith('examData='));
-      if (examCookie) {
-        try {
-          const examData = JSON.parse(decodeURIComponent(examCookie.split('=')[1]));
-          if (Array.isArray(examData) && examData.length > 0) {
-            currentExams = examData;
-            
-            document.getElementById('inputSection').style.display = 'none';
-            
-            document.getElementById('dataButtons').style.display = 'flex';
-            
-            renderExams();
+      // Load saved exam data
+      let examData;
+      
+      if (isElectron) {
+        examData = await window.electronAPI.loadExams();
+      } else {
+        const examCookie = document.cookie.split(';').find(c => c.trim().startsWith('examData='));
+        if (examCookie) {
+          try {
+            examData = JSON.parse(decodeURIComponent(examCookie.split('=')[1]));
+          } catch(e) {
+            console.error('Error parsing exam data from cookie:', e);
           }
-        } catch(e) {
-          console.error('Error parsing exam data from cookie:', e);
         }
+      }
+      
+      if (examData && Array.isArray(examData) && examData.length > 0) {
+        currentExams = examData;
+        
+        document.getElementById('inputSection').style.display = 'none';
+        document.getElementById('dataButtons').style.display = 'flex';
+        
+        renderExams();
       }
     };
   </script>
